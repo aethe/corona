@@ -19,6 +19,22 @@ class Item {
     }
 }
 
+class Difference {
+    cases: number;
+    deaths: number;
+    recovered: number;
+
+    constructor(lhs: Item, rhs: Item) {
+        this.cases = Math.abs(lhs.cases - rhs.cases);
+        this.deaths = Math.abs(lhs.deaths - rhs.deaths);
+        this.recovered = Math.abs(lhs.recovered - rhs.recovered);
+    }
+
+    get isEmpty(): boolean {
+        return this.cases == 0 && this.deaths == 0 && this.recovered == 0;
+    }
+}
+
 enum Color {
     Default,
     Red,
@@ -27,14 +43,28 @@ enum Color {
     Blue
 }
 
-class Table {
-    data: string[][];
-    colors: Color[];
+class Column {
+    constructor(
+        public header: string,
+        public width: number,
+        public color: Color
+    ) { }
+}
 
-    constructor(data: string[][], colors: Color[]) {
-        this.data = data;
-        this.colors = colors;
-    }
+class Table {
+    constructor(public columns: Column[]) { }
+
+    printHeaders = () => {
+        console.log(this.columns.map(e => this.colorize(e.header.padEnd(e.width, " "), e.color)).join(""));
+    };
+
+    printRow = (data: string[]) => {
+        if (data.length != this.columns.length) {
+            return;
+        }
+
+        console.log(data.map((e, i) => this.colorize(e.padEnd(this.columns[i].width), this.columns[i].color)).join(""));
+    };
 
     private colorize = (text: string, color: Color): string => {
         switch (color) {
@@ -43,18 +73,6 @@ class Table {
             case Color.Yellow: return yellow(text);
             case Color.Green: return green(text);
             case Color.Blue: return blue(text);
-        }
-    };
-
-    print = () => {
-        const columns = this.data
-            .map(e => e.length)
-            .reduce((p, n) => Math.max(p, n), 0);
-
-        const widths = [...Array(columns).keys()].map(column => Math.max(...this.data.map(e => e[column].length + 2)));
-
-        for (const row of this.data) {
-            console.log(row.map((e, i) => this.colorize(e.padEnd(widths[i], " "), this.colors[i])).join(""));
         }
     };
 }
@@ -68,49 +86,90 @@ const fetchStats = async (): Promise<Array<Item>> => {
 const runList = () => {
     fetchStats()
         .then(stats => {
-            const headers = [
-                "COUNTRY",
-                "CASES TOTAL",
-                "CASES TODAY",
-                "DEATHS TOTAL",
-                "DEATHS TODAY",
-                "TREATED",
-                "RECOVERED"
-            ];
+            const table = new Table([
+                new Column("COUNTRY", 24, Color.Default),
+                new Column("CASE ALL", 12, Color.Yellow),
+                new Column("CASE DAY", 12, Color.Yellow),
+                new Column("DTH ALL", 12, Color.Red),
+                new Column("DTH DAY", 12, Color.Red),
+                new Column("REC ALL", 12, Color.Green),
+                new Column("TREATED", 12, Color.Blue)
+            ]);
 
-            const data = [headers]
-                .concat(
-                    stats.map(e => {
-                        return [
-                            e.country,
-                            e.cases.toString(),
-                            e.todayCases.toString(),
-                            e.deaths.toString(),
-                            e.todayDeaths.toString(),
-                            e.treated.toString(),
-                            e.recovered.toString()
-                        ];
-                    })
-                );
+            table.printHeaders();
 
-            const colors = [
-                Color.Default,
-                Color.Yellow,
-                Color.Yellow,
-                Color.Red,
-                Color.Red,
-                Color.Blue,
-                Color.Green
-            ];
-
-            new Table(
-                data,
-                colors
-            ).print();
+            stats.forEach(e => {
+                table.printRow([
+                    e.country,
+                    e.cases.toString(),
+                    e.todayCases.toString(),
+                    e.deaths.toString(),
+                    e.todayDeaths.toString(),
+                    e.recovered.toString(),
+                    e.treated.toString()
+                ]);
+            });
         })
         .catch(error => {
             console.error("Failed to fetch data.");
         });
+};
+
+const runLive = async () => {
+    const cachedItems: { [country: string]: Item } = {};
+
+    const delay = (ms: number) => {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    };
+
+    const table = new Table([
+        new Column("COUNTRY", 24, Color.Default),
+        new Column("CASE NEW", 12, Color.Yellow),
+        new Column("CASE ALL", 12, Color.Yellow),
+        new Column("CASE DAY", 12, Color.Yellow),
+        new Column("DTH NEW", 12, Color.Red),
+        new Column("DTH ALL", 12, Color.Red),
+        new Column("DTH DAY", 12, Color.Red),
+        new Column("REC NEW", 12, Color.Green),
+        new Column("REC ALL", 12, Color.Green),
+        new Column("TREATED", 12, Color.Blue)
+        
+    ]);
+
+    table.printHeaders();
+
+    while (true) {
+        const items = await fetchStats();
+
+        items.forEach(async item => {
+            const cachedItem = cachedItems[item.country];
+
+            if (cachedItem) {
+                const difference = new Difference(item, cachedItem);
+
+                if (!difference.isEmpty) {
+                    const data = [
+                        item.country,
+                        difference.cases > 0 ? `+${difference.cases}` : "",
+                        `${item.cases}`,
+                        `${item.todayCases}`,
+                        difference.deaths > 0 ? `+${difference.deaths}` : "",
+                        `${item.deaths}`,
+                        `${item.todayDeaths}`,
+                        difference.recovered > 0 ? `+${difference.recovered}` : "",
+                        `${item.recovered}`,
+                        `${item.treated}`
+                    ];
+
+                    table.printRow(data);
+                }
+            }
+
+            cachedItems[item.country] = item;
+        });
+
+        await delay(60000);
+    }
 };
 
 const args = parse(Deno.args);
@@ -121,7 +180,11 @@ switch (command) {
         runList();
         break;
 
+    case "live":
+        runLive();
+        break;
+
     default:
-        console.error(`No such command '${command}'. Use 'all' to fetch the current data.`);
+        console.error(`No such command '${command}'. Use 'list' to fetch the current data, or 'live' to receive real-time updates.`);
         break;
 }

@@ -16,6 +16,15 @@ There is no installation required, but you need to have [Deno](https://deno.land
 
 Renders a table with the current data per country.
 
-```swift
+```
 deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts list
 ```
+
+### Live
+
+Renders real-time updates.
+
+```
+deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts live
+```
+

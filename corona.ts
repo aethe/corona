@@ -2,13 +2,13 @@ import { parse } from "https://deno.land/std/flags/mod.ts";
 import { red, yellow, green, blue } from "https://deno.land/std/fmt/colors.ts";
 
 class Item {
-    country: string;
-    cases: number;
-    todayCases: number;
-    deaths: number;
-    todayDeaths: number;
-    recovered: number;
-    critical: number;
+    country = "";
+    cases = 0;
+    todayCases = 0;
+    deaths = 0;
+    todayDeaths = 0;
+    recovered = 0;
+    critical = 0;
 
     get treated(): number {
         return this.cases - this.deaths - this.recovered;

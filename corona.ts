@@ -24,10 +24,10 @@ class Difference {
     deaths: number;
     recovered: number;
 
-    constructor(lhs: Item, rhs: Item) {
-        this.cases = Math.abs(lhs.cases - rhs.cases);
-        this.deaths = Math.abs(lhs.deaths - rhs.deaths);
-        this.recovered = Math.abs(lhs.recovered - rhs.recovered);
+    constructor(oldItem: Item, newItem: Item) {
+        this.cases = newItem.cases - oldItem.cases;
+        this.deaths = newItem.deaths - oldItem.deaths;
+        this.recovered = newItem.recovered - oldItem.recovered;
     }
 
     get isEmpty(): boolean {
@@ -49,6 +49,18 @@ class Column {
         public width: number,
         public color: Color
     ) { }
+}
+
+class NumberFormatter {
+    constructor(public includesPlusSign: boolean) { }
+
+    format = (value: number): string => {
+        if (value > 0 && this.includesPlusSign) {
+            return `+${value}`;
+        }
+
+        return `${value}`;
+    };
 }
 
 class Table {
@@ -140,23 +152,24 @@ const runLive = async () => {
 
     while (true) {
         const items = await fetchStats();
+        const differenceFormatter = new NumberFormatter(true);
 
         items.forEach(async item => {
             const cachedItem = cachedItems[item.country];
 
             if (cachedItem) {
-                const difference = new Difference(item, cachedItem);
+                const difference = new Difference(cachedItem, item);
 
                 if (!difference.isEmpty) {
                     const data = [
                         item.country,
-                        difference.cases > 0 ? `+${difference.cases}` : "",
+                        difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
                         `${item.cases}`,
                         `${item.todayCases}`,
-                        difference.deaths > 0 ? `+${difference.deaths}` : "",
+                        difference.deaths != 0 ? differenceFormatter.format(difference.deaths) : "",
                         `${item.deaths}`,
                         `${item.todayDeaths}`,
-                        difference.recovered > 0 ? `+${difference.recovered}` : "",
+                        difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
                         `${item.recovered}`,
                         `${item.treated}`
                     ];

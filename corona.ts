@@ -89,6 +89,11 @@ class Table {
     };
 }
 
+const time = (): string => {
+    const date = new Date();
+    return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+};
+
 const fetchStats = async (): Promise<Array<Item>> => {
     const response = await fetch("https://corona.lmao.ninja/countries");
     const json = await response.json();
@@ -135,6 +140,7 @@ const runLive = async () => {
     };
 
     const table = new Table([
+        new Column("TIME", 8, Color.Default),
         new Column("COUNTRY", 24, Color.Default),
         new Column("CASE NEW", 12, Color.Yellow),
         new Column("CASE ALL", 12, Color.Yellow),
@@ -162,6 +168,7 @@ const runLive = async () => {
 
                 if (!difference.isEmpty) {
                     const data = [
+                        time(),
                         item.country,
                         difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
                         `${item.cases}`,

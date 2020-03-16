@@ -187,7 +187,7 @@ const runLive = async () => {
             cachedItems[item.country] = item;
         });
 
-        await delay(5 * 60 * 1000);
+        await delay(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);
     }
 };
 

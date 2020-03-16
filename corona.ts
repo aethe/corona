@@ -151,7 +151,6 @@ const runLive = async () => {
         new Column("REC NEW", 12, Color.Green),
         new Column("REC ALL", 12, Color.Green),
         new Column("TREATED", 12, Color.Blue)
-        
     ]);
 
     table.printHeaders();
@@ -188,7 +187,7 @@ const runLive = async () => {
             cachedItems[item.country] = item;
         });
 
-        await delay(60000);
+        await delay(5 * 60 * 1000);
     }
 };
 

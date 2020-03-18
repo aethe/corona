@@ -1,22 +1,47 @@
 import { parse } from "https://deno.land/std/flags/mod.ts";
 import { red, yellow, green, blue } from "https://deno.land/std/fmt/colors.ts";
 
+class APIError extends Error { }
+class CodingError extends Error { }
+
 class Item {
-    country = "";
-    cases = 0;
-    todayCases = 0;
-    deaths = 0;
-    todayDeaths = 0;
-    recovered = 0;
-    critical = 0;
+    constructor(
+        public country: string,
+        public cases: number,
+        public todayCases: number,
+        public deaths: number,
+        public todayDeaths: number,
+        public recovered: number
+    ) { }
 
     get treated(): number {
         return this.cases - this.deaths - this.recovered;
     }
 
-    constructor(partial: Partial<Item>) {
-        Object.assign(this, partial);
-    }
+    static parseJSON = (json: any): Item => {
+        const country = json.country;
+        const cases = json.cases;
+        const todayCases = json.todayCases;
+        const deaths = json.deaths;
+        const todayDeaths = json.todayDeaths;
+        const recovered = json.recovered;
+
+        if (typeof country != "string") { throw new CodingError(); }
+        if (typeof cases != "number" && cases != null) { throw new CodingError(); }
+        if (typeof todayCases != "number" && todayCases != null) { throw new CodingError(); }
+        if (typeof deaths != "number" && deaths != null) { throw new CodingError(); }
+        if (typeof todayDeaths != "number" && todayDeaths != null) { throw new CodingError(); }
+        if (typeof recovered != "number" && recovered != null) { throw new CodingError(); }
+
+        return new Item(
+            country,
+            cases,
+            todayCases,
+            deaths,
+            todayDeaths,
+            recovered
+        );
+    };
 }
 
 class Difference {
@@ -96,40 +121,44 @@ const time = (): string => {
 
 const fetchStats = async (): Promise<Array<Item>> => {
     const response = await fetch("https://corona.lmao.ninja/countries");
-    const json = await response.json();
-    return (json as [any]).map(e => new Item(e));
+
+    if (!response.ok) {
+        throw new APIError();
+    }
+    
+    return (await response.json() as [any]).map(e => Item.parseJSON(e));
 };
 
-const runList = () => {
-    fetchStats()
-        .then(stats => {
-            const table = new Table([
-                new Column("COUNTRY", 24, Color.Default),
-                new Column("CASE ALL", 12, Color.Yellow),
-                new Column("CASE DAY", 12, Color.Yellow),
-                new Column("DTH ALL", 12, Color.Red),
-                new Column("DTH DAY", 12, Color.Red),
-                new Column("REC ALL", 12, Color.Green),
-                new Column("TREATED", 12, Color.Blue)
+const runList = async () => {
+    try {
+        const stats = await fetchStats();
+
+        const table = new Table([
+            new Column("TERRITORY", 24, Color.Default),
+            new Column("CASE ALL", 12, Color.Yellow),
+            new Column("CASE DAY", 12, Color.Yellow),
+            new Column("DTH ALL", 12, Color.Red),
+            new Column("DTH DAY", 12, Color.Red),
+            new Column("REC ALL", 12, Color.Green),
+            new Column("TREATED", 12, Color.Blue)
+        ]);
+
+        table.printHeaders();
+
+        stats.forEach(e => {
+            table.printRow([
+                e.country,
+                e.cases.toString(),
+                e.todayCases.toString(),
+                e.deaths.toString(),
+                e.todayDeaths.toString(),
+                e.recovered.toString(),
+                e.treated.toString()
             ]);
-
-            table.printHeaders();
-
-            stats.forEach(e => {
-                table.printRow([
-                    e.country,
-                    e.cases.toString(),
-                    e.todayCases.toString(),
-                    e.deaths.toString(),
-                    e.todayDeaths.toString(),
-                    e.recovered.toString(),
-                    e.treated.toString()
-                ]);
-            });
-        })
-        .catch(error => {
-            console.error("Failed to fetch data.");
         });
+    } catch (error) {
+        console.error("Failed to fetch data.");
+    }
 };
 
 const runLive = async () => {
@@ -141,7 +170,7 @@ const runLive = async () => {
 
     const table = new Table([
         new Column("TIME", 8, Color.Default),
-        new Column("COUNTRY", 24, Color.Default),
+        new Column("TERRITORY", 24, Color.Default),
         new Column("CASE NEW", 12, Color.Yellow),
         new Column("CASE ALL", 12, Color.Yellow),
         new Column("CASE DAY", 12, Color.Yellow),
@@ -156,38 +185,43 @@ const runLive = async () => {
     table.printHeaders();
 
     while (true) {
-        const items = await fetchStats();
-        const differenceFormatter = new NumberFormatter(true);
+        try {
+            const items = await fetchStats();
+            const differenceFormatter = new NumberFormatter(true);
 
-        items.forEach(async item => {
-            const cachedItem = cachedItems[item.country];
+            items.forEach(async item => {
+                const cachedItem = cachedItems[item.country];
 
-            if (cachedItem) {
-                const difference = new Difference(cachedItem, item);
+                if (cachedItem) {
+                    const difference = new Difference(cachedItem, item);
 
-                if (!difference.isEmpty) {
-                    const data = [
-                        time(),
-                        item.country,
-                        difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
-                        `${item.cases}`,
-                        `${item.todayCases}`,
-                        difference.deaths != 0 ? differenceFormatter.format(difference.deaths) : "",
-                        `${item.deaths}`,
-                        `${item.todayDeaths}`,
-                        difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
-                        `${item.recovered}`,
-                        `${item.treated}`
-                    ];
+                    if (!difference.isEmpty) {
+                        const data = [
+                            time(),
+                            item.country,
+                            difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
+                            `${item.cases}`,
+                            `${item.todayCases}`,
+                            difference.deaths != 0 ? differenceFormatter.format(difference.deaths) : "",
+                            `${item.deaths}`,
+                            `${item.todayDeaths}`,
+                            difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
+                            `${item.recovered}`,
+                            `${item.treated}`
+                        ];
 
-                    table.printRow(data);
+                        table.printRow(data);
+                    }
                 }
-            }
 
-            cachedItems[item.country] = item;
-        });
+                cachedItems[item.country] = item;
+            });
 
-        await delay(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);
+            await delay(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);
+        } catch (error) {
+            console.error("Failed to fetch data. Retrying in 1 minute.");
+            await delay(60 * 1000);
+        }
     }
 };
 

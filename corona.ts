@@ -76,18 +76,6 @@ class Column {
     ) { }
 }
 
-class NumberFormatter {
-    constructor(public includesPlusSign: boolean) { }
-
-    format = (value: number): string => {
-        if (value > 0 && this.includesPlusSign) {
-            return `+${value}`;
-        }
-
-        return `${value}`;
-    };
-}
-
 class Table {
     constructor(public columns: Column[]) { }
 
@@ -111,6 +99,18 @@ class Table {
             case Color.Green: return green(text);
             case Color.Blue: return blue(text);
         }
+    };
+}
+
+class NumberFormatter {
+    constructor(public includesPlusSign: boolean) { }
+
+    format = (value: number): string => {
+        if (value > 0 && this.includesPlusSign) {
+            return `+${value}`;
+        }
+
+        return `${value}`;
     };
 }
 
@@ -164,9 +164,7 @@ const runList = async () => {
 const runLive = async () => {
     const cachedItems: { [country: string]: Item } = {};
 
-    const delay = (ms: number) => {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    };
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     const table = new Table([
         new Column("TIME", 8, Color.Default),
@@ -196,7 +194,7 @@ const runLive = async () => {
                     const difference = new Difference(cachedItem, item);
 
                     if (!difference.isEmpty) {
-                        const data = [
+                        table.printRow([
                             time(),
                             item.country,
                             difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
@@ -208,9 +206,7 @@ const runLive = async () => {
                             difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
                             `${item.recovered}`,
                             `${item.treated}`
-                        ];
-
-                        table.printRow(data);
+                        ]);
                     }
                 }
 

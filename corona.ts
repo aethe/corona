@@ -4,6 +4,14 @@ import { red, yellow, green, blue } from "https://deno.land/std/fmt/colors.ts";
 class APIError extends Error { }
 class CodingError extends Error { }
 
+const fail = (): never => { throw new CodingError(); };
+const asBoolean = (value: any): boolean => typeof value === "boolean" ? value : fail();
+const asNumber = (value: any): number => typeof value === "number" ? value : fail();
+const asString = (value: any): string => typeof value === "string" ? value : fail();
+const asBooleanOrNull = (value: any): boolean | null => typeof value === "boolean" ? value : null;
+const asNumberOrNull = (value: any): number | null => typeof value === "number" ? value : null;
+const asStringOrNull = (value: any): string | null => typeof value === "string" ? value : null;
+
 class Item {
     constructor(
         public country: string,
@@ -18,30 +26,14 @@ class Item {
         return this.cases - this.deaths - this.recovered;
     }
 
-    static parseJSON = (json: any): Item => {
-        const country = json.country;
-        const cases = json.cases;
-        const todayCases = json.todayCases;
-        const deaths = json.deaths;
-        const todayDeaths = json.todayDeaths;
-        const recovered = json.recovered;
-
-        if (typeof country != "string") { throw new CodingError(); }
-        if (typeof cases != "number" && cases != null) { throw new CodingError(); }
-        if (typeof todayCases != "number" && todayCases != null) { throw new CodingError(); }
-        if (typeof deaths != "number" && deaths != null) { throw new CodingError(); }
-        if (typeof todayDeaths != "number" && todayDeaths != null) { throw new CodingError(); }
-        if (typeof recovered != "number" && recovered != null) { throw new CodingError(); }
-
-        return new Item(
-            country,
-            cases,
-            todayCases,
-            deaths,
-            todayDeaths,
-            recovered
-        );
-    };
+    static parseJSON = (json: any): Item => new Item(
+        asString(json.country),
+        asNumber(json.cases),
+        asNumber(json.todayCases),
+        asNumber(json.deaths),
+        asNumber(json.todayDeaths),
+        asNumber(json.recovered)
+    );
 }
 
 class Difference {

@@ -27,7 +27,7 @@ class Summary {
         public recovered: number
     ) { }
 
-    get treated(): number {
+    get active(): number {
         return this.cases - this.deaths - this.recovered;
     }
 
@@ -45,12 +45,9 @@ class Item {
         public todayCases: number,
         public deaths: number,
         public todayDeaths: number,
-        public recovered: number
+        public recovered: number,
+        public active: number
     ) { }
-
-    get treated(): number {
-        return this.cases - this.deaths - this.recovered;
-    }
 
     static parseJSON = (json: any): Item => new Item(
         asString(json.country),
@@ -58,7 +55,8 @@ class Item {
         asNumber(json.todayCases),
         asNumber(json.deaths),
         asNumber(json.todayDeaths),
-        asNumber(json.recovered)
+        asNumber(json.recovered),
+        asNumber(json.active)
     );
 }
 
@@ -161,7 +159,7 @@ async function runSummary() {
     try{
         const summary = await fetchSummary();
 
-        console.log(`There are currently ${yellow(summary.cases.toString())} cases, ${red(summary.deaths.toString())} deaths, ${green(summary.recovered.toString())} recoveries, ${blue(summary.treated.toString())} under treatment.`);
+        console.log(`There are currently ${yellow(summary.cases.toString())} cases, ${red(summary.deaths.toString())} deaths, ${green(summary.recovered.toString())} recoveries, ${blue(summary.active.toString())} active.`);
     } catch (error) {
         console.error("Failed to fetch data.");
     }
@@ -178,7 +176,7 @@ async function runList() {
             new Column("DTH ALL", 12, Color.Red),
             new Column("DTH DAY", 12, Color.Red),
             new Column("REC ALL", 12, Color.Green),
-            new Column("TREATED", 12, Color.Blue)
+            new Column("ACTIVE", 12, Color.Blue)
         ]);
 
         table.printHeaders();
@@ -191,7 +189,7 @@ async function runList() {
                 e.deaths.toString(),
                 e.todayDeaths.toString(),
                 e.recovered.toString(),
-                e.treated.toString()
+                e.active.toString()
             ]);
         });
     } catch (error) {
@@ -215,7 +213,7 @@ async function runLive() {
         new Column("DTH DAY", 12, Color.Red),
         new Column("REC NEW", 12, Color.Green),
         new Column("REC ALL", 12, Color.Green),
-        new Column("TREATED", 12, Color.Blue)
+        new Column("ACTIVE", 12, Color.Blue)
     ]);
 
     table.printHeaders();
@@ -243,7 +241,7 @@ async function runLive() {
                             `${item.todayDeaths}`,
                             difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
                             `${item.recovered}`,
-                            `${item.treated}`
+                            `${item.active}`
                         ]);
                     }
                 }

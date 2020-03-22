@@ -4,13 +4,39 @@ import { red, yellow, green, blue } from "https://deno.land/std/fmt/colors.ts";
 class APIError extends Error { }
 class CodingError extends Error { }
 
-const fail = (): never => { throw new CodingError(); };
-const asBoolean = (value: any): boolean => typeof value === "boolean" ? value : fail();
-const asNumber = (value: any): number => typeof value === "number" ? value : fail();
-const asString = (value: any): string => typeof value === "string" ? value : fail();
-const asBooleanOrNull = (value: any): boolean | null => typeof value === "boolean" ? value : null;
-const asNumberOrNull = (value: any): number | null => typeof value === "number" ? value : null;
-const asStringOrNull = (value: any): string | null => typeof value === "string" ? value : null;
+function asNumber(value: any): number {
+    if (typeof value === "number") {
+        return value;
+    } else {
+        throw new CodingError();
+    }
+}
+
+function asString(value: any): string {
+    if (typeof value === "string") {
+        return value;
+    } else {
+        throw new CodingError();
+    }
+}
+
+class Summary {
+    constructor(
+        public cases: number,
+        public deaths: number,
+        public recovered: number
+    ) { }
+
+    get treated(): number {
+        return this.cases - this.deaths - this.recovered;
+    }
+
+    static parseJSON = (json: any): Summary => new Summary(
+        asNumber(json.cases),
+        asNumber(json.deaths),
+        asNumber(json.recovered)
+    );
+}
 
 class Item {
     constructor(
@@ -106,12 +132,22 @@ class NumberFormatter {
     };
 }
 
-const time = (): string => {
+function time(): string {
     const date = new Date();
     return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
-};
+}
 
-const fetchStats = async (): Promise<Array<Item>> => {
+async function fetchSummary(): Promise<Summary> {
+    const response = await fetch("https://corona.lmao.ninja/all");
+
+    if (!response.ok) {
+        throw new APIError();
+    }
+
+    return Summary.parseJSON((await response.json() as [any]));
+}
+
+async function fetchStats(): Promise<Array<Item>> {
     const response = await fetch("https://corona.lmao.ninja/countries");
 
     if (!response.ok) {
@@ -119,9 +155,19 @@ const fetchStats = async (): Promise<Array<Item>> => {
     }
     
     return (await response.json() as [any]).map(e => Item.parseJSON(e));
-};
+}
 
-const runList = async () => {
+async function runSummary() {
+    try{
+        const summary = await fetchSummary();
+
+        console.log(`There are currently ${yellow(summary.cases.toString())} cases, ${red(summary.deaths.toString())} deaths, ${green(summary.recovered.toString())} recoveries, ${blue(summary.treated.toString())} under treatment.`);
+    } catch (error) {
+        console.error("Failed to fetch data.");
+    }
+}
+
+async function runList() {
     try {
         const stats = await fetchStats();
 
@@ -151,9 +197,9 @@ const runList = async () => {
     } catch (error) {
         console.error("Failed to fetch data.");
     }
-};
+}
 
-const runLive = async () => {
+async function runLive() {
     const cachedItems: { [country: string]: Item } = {};
 
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -211,12 +257,16 @@ const runLive = async () => {
             await delay(60 * 1000);
         }
     }
-};
+}
 
 const args = parse(Deno.args);
 const command = args._[0];
 
 switch (command) {
+    case "summary":
+        runSummary();
+        break;
+
     case "list":
         runList();
         break;

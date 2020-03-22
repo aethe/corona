@@ -276,6 +276,6 @@ switch (command) {
         break;
 
     default:
-        console.error(`No such command '${command}'. Use 'list' to fetch the current data, or 'live' to receive real-time updates.`);
+        console.error(`No such command '${command}'. Use one of the available commands: 'summary', 'list', 'live'.`);
         break;
 }

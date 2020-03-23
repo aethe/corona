@@ -42,9 +42,10 @@ class Item {
     constructor(
         public country: string,
         public cases: number,
-        public todayCases: number,
+        public casesToday: number,
+        public casesPerMillion: number,
         public deaths: number,
-        public todayDeaths: number,
+        public deathsToday: number,
         public recovered: number,
         public active: number
     ) { }
@@ -53,6 +54,7 @@ class Item {
         asString(json.country),
         asNumber(json.cases),
         asNumber(json.todayCases),
+        asNumber(json.casesPerOneMillion),
         asNumber(json.deaths),
         asNumber(json.todayDeaths),
         asNumber(json.recovered),
@@ -173,6 +175,7 @@ async function runList() {
             new Column("TERRITORY", 24, Color.Default),
             new Column("CASE ALL", 12, Color.Yellow),
             new Column("CASE DAY", 12, Color.Yellow),
+            new Column("CASE PMI", 12, Color.Yellow),
             new Column("DTH ALL", 12, Color.Red),
             new Column("DTH DAY", 12, Color.Red),
             new Column("REC ALL", 12, Color.Green),
@@ -185,9 +188,10 @@ async function runList() {
             table.printRow([
                 e.country,
                 e.cases.toString(),
-                e.todayCases.toString(),
+                e.casesToday.toString(),
+                e.casesPerMillion.toString(),
                 e.deaths.toString(),
-                e.todayDeaths.toString(),
+                e.deathsToday.toString(),
                 e.recovered.toString(),
                 e.active.toString()
             ]);
@@ -208,6 +212,7 @@ async function runLive() {
         new Column("CASE NEW", 12, Color.Yellow),
         new Column("CASE ALL", 12, Color.Yellow),
         new Column("CASE DAY", 12, Color.Yellow),
+        new Column("CASE PMI", 12, Color.Yellow),
         new Column("DTH NEW", 12, Color.Red),
         new Column("DTH ALL", 12, Color.Red),
         new Column("DTH DAY", 12, Color.Red),
@@ -234,14 +239,15 @@ async function runLive() {
                             time(),
                             item.country,
                             difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
-                            `${item.cases}`,
-                            `${item.todayCases}`,
+                            item.cases.toString(),
+                            item.casesToday.toString(),
+                            item.casesPerMillion.toString(),
                             difference.deaths != 0 ? differenceFormatter.format(difference.deaths) : "",
-                            `${item.deaths}`,
-                            `${item.todayDeaths}`,
+                            item.deaths.toString(),
+                            item.deathsToday.toString(),
                             difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
-                            `${item.recovered}`,
-                            `${item.active}`
+                            item.recovered.toString(),
+                            item.active.toString()
                         ]);
                     }
                 }

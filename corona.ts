@@ -20,6 +20,22 @@ function asString(value: any): string {
     }
 }
 
+function asNumberOrNull(value: any): number | null {
+    if (typeof value === "number") {
+        return value;
+    } else {
+        return null;
+    }
+}
+
+function asStringOrNull(value: any): string | null {
+    if (typeof value === "string") {
+        return value;
+    } else {
+        return null;
+    }
+}
+
 class Summary {
     constructor(
         public cases: number,
@@ -41,24 +57,24 @@ class Summary {
 class Item {
     constructor(
         public country: string,
-        public cases: number,
-        public casesToday: number,
-        public casesPerMillion: number,
-        public deaths: number,
-        public deathsToday: number,
-        public recovered: number,
-        public active: number
+        public cases: number | null,
+        public casesToday: number | null,
+        public casesPerMillion: number | null,
+        public deaths: number | null,
+        public deathsToday: number | null,
+        public recovered: number | null,
+        public active: number | null
     ) { }
 
     static parseJSON = (json: any): Item => new Item(
         asString(json.country),
-        asNumber(json.cases),
-        asNumber(json.todayCases),
-        asNumber(json.casesPerOneMillion),
-        asNumber(json.deaths),
-        asNumber(json.todayDeaths),
-        asNumber(json.recovered),
-        asNumber(json.active)
+        asNumberOrNull(json.cases),
+        asNumberOrNull(json.todayCases),
+        asNumberOrNull(json.casesPerOneMillion),
+        asNumberOrNull(json.deaths),
+        asNumberOrNull(json.todayDeaths),
+        asNumberOrNull(json.recovered),
+        asNumberOrNull(json.active)
     );
 }
 
@@ -68,9 +84,9 @@ class Difference {
     recovered: number;
 
     constructor(oldItem: Item, newItem: Item) {
-        this.cases = newItem.cases - oldItem.cases;
-        this.deaths = newItem.deaths - oldItem.deaths;
-        this.recovered = newItem.recovered - oldItem.recovered;
+        this.cases = oldItem.cases && newItem.cases ? newItem.cases - oldItem.cases : 0;
+        this.deaths = oldItem.deaths && newItem.deaths ? newItem.deaths - oldItem.deaths : 0;
+        this.recovered = oldItem.recovered && newItem.recovered ? newItem.recovered - oldItem.recovered : 0;
     }
 
     get isEmpty(): boolean {
@@ -187,13 +203,13 @@ async function runList() {
         stats.forEach(e => {
             table.printRow([
                 e.country,
-                e.cases.toString(),
-                e.casesToday.toString(),
-                e.casesPerMillion.toString(),
-                e.deaths.toString(),
-                e.deathsToday.toString(),
-                e.recovered.toString(),
-                e.active.toString()
+                e.cases !== null ? e.cases.toString() : "-",
+                e.casesToday !== null ? e.casesToday.toString() : "-",
+                e.casesPerMillion !== null ? e.casesPerMillion.toString() : "-",
+                e.deaths !== null ? e.deaths.toString() : "-",
+                e.deathsToday !== null ? e.deathsToday.toString() : "-",
+                e.recovered !== null ? e.recovered.toString() : "-",
+                e.active !== null ? e.active.toString() : "-"
             ]);
         });
     } catch (error) {
@@ -239,15 +255,15 @@ async function runLive() {
                             time(),
                             item.country,
                             difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
-                            item.cases.toString(),
-                            item.casesToday.toString(),
-                            item.casesPerMillion.toString(),
+                            item.cases !== null ? item.cases.toString() : "-",
+                            item.casesToday !== null ? item.casesToday.toString() : "-",
+                            item.casesPerMillion !== null ? item.casesPerMillion.toString() : "-",
                             difference.deaths != 0 ? differenceFormatter.format(difference.deaths) : "",
-                            item.deaths.toString(),
-                            item.deathsToday.toString(),
+                            item.deaths !== null ? item.deaths.toString() : "-",
+                            item.deathsToday !== null ? item.deathsToday.toString() : "-",
                             difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
-                            item.recovered.toString(),
-                            item.active.toString()
+                            item.recovered !== null ? item.recovered.toString() : "-",
+                            item.active !== null ? item.active.toString() : "-"
                         ]);
                     }
                 }

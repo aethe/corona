@@ -113,16 +113,31 @@ class Column {
 class Table {
     constructor(public columns: Column[]) { }
 
-    printHeaders = () => {
-        console.log(this.columns.map(e => this.colorize(e.header.padEnd(e.width, " "), e.color)).join(""));
-    };
+    printHeaders = () => console.log(
+        this.columns.map(e => 
+            this.colorize(
+                e.header.padEnd(e.width, " "), 
+                e.color
+            )
+        ).join("")
+    );
 
     printRow = (data: string[]) => {
         if (data.length != this.columns.length) {
             return;
         }
 
-        console.log(data.map((e, i) => this.colorize(e.padEnd(this.columns[i].width), this.columns[i].color)).join(""));
+        console.log(
+            data.map((e, i) =>
+                this.colorize(
+                    this.clip(
+                        e, 
+                        this.columns[i].width - 1
+                    ).padEnd(this.columns[i].width),
+                    this.columns[i].color
+                )
+            ).join("")
+        );
     };
 
     private colorize = (text: string, color: Color): string => {
@@ -134,6 +149,10 @@ class Table {
             case Color.Blue: return blue(text);
         }
     };
+
+    private clip = (text: string, maxLength: number): string => text.length > maxLength
+        ? `${text.slice(0, maxLength - 3)}...`
+        : text;
 }
 
 class NumberFormatter {

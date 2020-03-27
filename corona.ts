@@ -54,7 +54,7 @@ class Summary {
     );
 }
 
-class Item {
+class Entry {
     constructor(
         public country: string,
         public cases: number | null,
@@ -65,7 +65,7 @@ class Item {
         public active: number | null
     ) { }
 
-    static parseJSON = (json: any): Item => new Item(
+    static parseJSON = (json: any): Entry => new Entry(
         asString(json.country),
         asNumberOrNull(json.cases),
         asNumberOrNull(json.todayCases),
@@ -81,10 +81,10 @@ class Difference {
     deaths: number;
     recovered: number;
 
-    constructor(oldItem: Item, newItem: Item) {
-        this.cases = oldItem.cases && newItem.cases ? newItem.cases - oldItem.cases : 0;
-        this.deaths = oldItem.deaths && newItem.deaths ? newItem.deaths - oldItem.deaths : 0;
-        this.recovered = oldItem.recovered && newItem.recovered ? newItem.recovered - oldItem.recovered : 0;
+    constructor(oldEntry: Entry, newEntry: Entry) {
+        this.cases = oldEntry.cases && newEntry.cases ? newEntry.cases - oldEntry.cases : 0;
+        this.deaths = oldEntry.deaths && newEntry.deaths ? newEntry.deaths - oldEntry.deaths : 0;
+        this.recovered = oldEntry.recovered && newEntry.recovered ? newEntry.recovered - oldEntry.recovered : 0;
     }
 
     get isEmpty(): boolean {
@@ -180,18 +180,18 @@ async function fetchSummary(): Promise<Summary> {
     return Summary.parseJSON((await response.json() as [any]));
 }
 
-async function fetchStats(): Promise<Array<Item>> {
+async function fetchEntries(): Promise<Array<Entry>> {
     const response = await fetch("https://corona.lmao.ninja/countries");
 
     if (!response.ok) {
         throw new APIError();
     }
     
-    return (await response.json() as [any]).map(e => Item.parseJSON(e));
+    return (await response.json() as [any]).map(e => Entry.parseJSON(e));
 }
 
 async function runSummary() {
-    try{
+    try {
         const summary = await fetchSummary();
 
         console.log(`There are currently ${yellow(summary.cases.toString())} cases, ${red(summary.deaths.toString())} deaths, ${green(summary.recovered.toString())} recoveries, ${blue(summary.active.toString())} active.`);
@@ -202,7 +202,7 @@ async function runSummary() {
 
 async function runList() {
     try {
-        const stats = (await fetchStats()).sort((a, b) => (b.cases ?? 0) - (a.cases ?? 0));
+        const stats = (await fetchEntries()).sort((a, b) => (b.cases ?? 0) - (a.cases ?? 0));
 
         const table = new Table([
             new Column("TERRITORY", 24, Color.Default),
@@ -233,7 +233,7 @@ async function runList() {
 }
 
 async function runLive() {
-    const cachedItems: { [country: string]: Item } = {};
+    const cachedEntries: { [country: string]: Entry } = {};
 
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -255,33 +255,33 @@ async function runLive() {
 
     while (true) {
         try {
-            const items = await fetchStats();
+            const entries = await fetchEntries();
             const differenceFormatter = new NumberFormatter(true);
 
-            items.forEach(async item => {
-                const cachedItem = cachedItems[item.country];
+            entries.forEach(async entry => {
+                const cachedEntry = cachedEntries[entry.country];
 
-                if (cachedItem) {
-                    const difference = new Difference(cachedItem, item);
+                if (cachedEntry) {
+                    const difference = new Difference(cachedEntry, entry);
 
                     if (!difference.isEmpty) {
                         table.printRow([
                             time(),
-                            item.country,
+                            entry.country,
                             difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
-                            item.cases !== null ? item.cases.toString() : "-",
-                            item.casesToday !== null ? item.casesToday.toString() : "-",
+                            entry.cases !== null ? entry.cases.toString() : "-",
+                            entry.casesToday !== null ? entry.casesToday.toString() : "-",
                             difference.deaths != 0 ? differenceFormatter.format(difference.deaths) : "",
-                            item.deaths !== null ? item.deaths.toString() : "-",
-                            item.deathsToday !== null ? item.deathsToday.toString() : "-",
+                            entry.deaths !== null ? entry.deaths.toString() : "-",
+                            entry.deathsToday !== null ? entry.deathsToday.toString() : "-",
                             difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
-                            item.recovered !== null ? item.recovered.toString() : "-",
-                            item.active !== null ? item.active.toString() : "-"
+                            entry.recovered !== null ? entry.recovered.toString() : "-",
+                            entry.active !== null ? entry.active.toString() : "-"
                         ]);
                     }
                 }
 
-                cachedItems[item.country] = item;
+                cachedEntries[entry.country] = entry;
             });
 
             await delay(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);

@@ -202,7 +202,7 @@ async function runSummary() {
 
 async function runList() {
     try {
-        const stats = await fetchStats();
+        const stats = (await fetchStats()).sort((a, b) => (b.cases ?? 0) - (a.cases ?? 0));
 
         const table = new Table([
             new Column("TERRITORY", 24, Color.Default),

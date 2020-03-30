@@ -54,6 +54,15 @@ class Summary {
     );
 }
 
+enum SortRule {
+    Cases,
+    CasesToday,
+    Deaths,
+    DeathsToday,
+    Recovered,
+    Active
+}
+
 class Entry {
     constructor(
         public country: string,
@@ -74,6 +83,17 @@ class Entry {
         asNumberOrNull(json.recovered),
         asNumberOrNull(json.active)
     );
+
+    compare = (other: Entry, sortRule: SortRule): number => {
+        switch (sortRule) {
+            case SortRule.Cases: return (this.cases ?? 0) - (other.cases ?? 0);
+            case SortRule.CasesToday: return (this.casesToday ?? 0) - (other.casesToday ?? 0);
+            case SortRule.Deaths: return (this.deaths ?? 0) - (other.deaths ?? 0);
+            case SortRule.DeathsToday: return (this.deathsToday ?? 0) - (other.deathsToday ?? 0);
+            case SortRule.Recovered: return (this.recovered ?? 0) - (other.recovered ?? 0);
+            case SortRule.Active: return (this.active ?? 0) - (other.active ?? 0);
+        }
+    }
 }
 
 class Difference {
@@ -190,6 +210,10 @@ async function fetchEntries(): Promise<Array<Entry>> {
     return (await response.json() as [any]).map(e => Entry.parseJSON(e));
 }
 
+async function wait(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function runSummary() {
     try {
         const summary = await fetchSummary();
@@ -200,9 +224,9 @@ async function runSummary() {
     }
 }
 
-async function runList() {
+async function runList(sortRule: SortRule) {
     try {
-        const stats = (await fetchEntries()).sort((a, b) => (b.cases ?? 0) - (a.cases ?? 0));
+        const stats = (await fetchEntries()).sort((a, b) => -a.compare(b, sortRule));
 
         const table = new Table([
             new Column("TERRITORY", 24, Color.Default),
@@ -234,8 +258,6 @@ async function runList() {
 
 async function runLive() {
     const cachedEntries: { [country: string]: Entry } = {};
-
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     const table = new Table([
         new Column("TIME", 8, Color.Default),
@@ -283,11 +305,11 @@ async function runLive() {
 
                 cachedEntries[entry.country] = entry;
             });
-
-            await delay(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);
+            
+            await wait(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);
         } catch (error) {
             console.error("Failed to fetch data. Retrying in 1 minute.");
-            await delay(60 * 1000);
+            await wait(60 * 1000);
         }
     }
 }
@@ -301,7 +323,34 @@ switch (command) {
         break;
 
     case "list":
-        runList();
+        let sortRule = SortRule.Cases;
+        switch (args["sort"]) {
+            case "cases":
+                sortRule = SortRule.Cases;
+                break;
+
+            case "cases-today":
+                sortRule = SortRule.CasesToday;
+                break;
+
+            case "deaths":
+                sortRule = SortRule.Deaths;
+                break;
+
+            case "deaths-today":
+                sortRule = SortRule.DeathsToday;
+                break;
+                
+            case "recovered":
+                sortRule = SortRule.Recovered;
+                break;
+
+            case "active":
+                sortRule = SortRule.Active;
+                break;
+        }
+
+        runList(sortRule);
         break;
 
     case "live":

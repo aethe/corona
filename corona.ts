@@ -210,7 +210,7 @@ async function fetchEntries(): Promise<Array<Entry>> {
     return (await response.json() as [any]).map(e => Entry.parseJSON(e));
 }
 
-async function wait(ms: number) {
+function wait(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -305,7 +305,7 @@ async function runLive() {
 
                 cachedEntries[entry.country] = entry;
             });
-            
+
             await wait(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);
         } catch (error) {
             console.error("Failed to fetch data. Retrying in 1 minute.");

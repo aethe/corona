@@ -40,7 +40,8 @@ class Summary {
     constructor(
         public cases: number,
         public deaths: number,
-        public recovered: number
+        public recovered: number,
+        public affectedTerritories: number
     ) { }
 
     get active(): number {
@@ -50,7 +51,8 @@ class Summary {
     static parseJSON = (json: any): Summary => new Summary(
         asNumber(json.cases),
         asNumber(json.deaths),
-        asNumber(json.recovered)
+        asNumber(json.recovered),
+        asNumber(json.affectedCountries)
     );
 }
 
@@ -218,7 +220,7 @@ async function runSummary() {
     try {
         const summary = await fetchSummary();
 
-        console.log(`There are currently ${yellow(summary.cases.toString())} cases, ${red(summary.deaths.toString())} deaths, ${green(summary.recovered.toString())} recoveries, ${blue(summary.active.toString())} active.`);
+        console.log(`There are currently ${yellow(summary.cases.toString())} cases, ${red(summary.deaths.toString())} deaths, ${green(summary.recovered.toString())} recoveries, ${blue(summary.active.toString())} active in ${summary.affectedTerritories} affected countries and territories.`);
     } catch (error) {
         console.error("Failed to fetch data.");
     }

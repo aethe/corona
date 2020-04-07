@@ -28,11 +28,7 @@ Renders a table with the current data per territory.
 deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts list
 ```
 
-To sort the output, use the `--sort <column>` argument with one of the following values: `cases`, `cases-today`, `deaths`, `deaths-today`, `recovered`, `active`. In case the sort argument is not specified, the output is sorted by `cases`.
-
-```
-deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts list --sort active
-```
+To sort the output, use the `--sort` argument with one of the following values: `cases`, `cases-today`, `deaths`, `deaths-today`, `recovered`, `active`. The default is `cases`.
 
 ### Live
 
@@ -42,3 +38,12 @@ Renders real-time updates.
 deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts live
 ```
 
+### Timeline
+
+Renders a timeline for a specific territory.
+
+```
+deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts timeline china
+```
+
+To specify the length of the timeline to render, use the `--days` argument. The default is `30`.

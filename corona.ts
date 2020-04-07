@@ -20,6 +20,14 @@ function asString(value: any): string {
     }
 }
 
+function asObject(value: any): { [index: string]: any } {
+    if (typeof value === "object" && value !== null) {
+        return value;
+    } else {
+        throw new CodingError();
+    }
+}
+
 function asNumberOrNull(value: any): number | null {
     if (typeof value === "number") {
         return value;
@@ -30,6 +38,14 @@ function asNumberOrNull(value: any): number | null {
 
 function asStringOrNull(value: any): string | null {
     if (typeof value === "string") {
+        return value;
+    } else {
+        return null;
+    }
+}
+
+function asObjectOrNull(value: any): { [index: string]: any } | null {
+    if (typeof value === "object") {
         return value;
     } else {
         return null;
@@ -114,6 +130,121 @@ class Difference {
     }
 }
 
+class TimelineEntry {
+    constructor(
+        public date: string,
+        public cases: number | null,
+        public casesIncrease: number | null,
+        public deaths: number | null,
+        public deathsIncrease: number | null,
+        public recovered: number | null,
+        public recoveredIncrease: number | null,
+        public active: number | null,
+        public activeIncrease: number | null
+    ) { }
+}
+
+class Timeline {
+    constructor(public entries: TimelineEntry[]) { }
+
+    static parseJSON = (json: any): Timeline => {
+        const casesJSON = asObjectOrNull(json.timeline.cases) ?? {};
+        const deathsJSON = asObjectOrNull(json.timeline.deaths) ?? {};
+        const recoveredJSON = asObjectOrNull(json.timeline.recovered) ?? {};
+
+        const intermediateEntries: { [territory: string]: { [subject: string]: number }} = {};
+
+        for (const date in casesJSON) {
+            const cases = asNumber(casesJSON[date]);
+
+            if (intermediateEntries[date] === undefined) {
+                intermediateEntries[date] = {};
+            }
+
+            intermediateEntries[date].cases = cases;
+        }
+
+        for (const date in deathsJSON) {
+            const deaths = asNumber(deathsJSON[date]);
+
+            if (intermediateEntries[date] === undefined) {
+                intermediateEntries[date] = {};
+            }
+
+            intermediateEntries[date].deaths = deaths;
+        }
+
+        for (const date in recoveredJSON) {
+            const recovered = asNumber(recoveredJSON[date]);
+
+            if (intermediateEntries[date] === undefined) {
+                intermediateEntries[date] = {};
+            }
+
+            intermediateEntries[date].recovered = recovered;
+        }
+
+        const entries = new Array<TimelineEntry>();
+
+        for (const date in intermediateEntries) {
+            const intermediateEntry = intermediateEntries[date];
+
+            const cases = intermediateEntry.cases !== undefined
+                ? intermediateEntry.cases
+                : null;
+
+            const deaths = intermediateEntry.deaths !== undefined
+                ? intermediateEntry.deaths
+                : null;
+
+            const recovered = intermediateEntry.recovered !== undefined
+                ? intermediateEntry.recovered
+                : null;
+
+            const active = cases !== null && deaths !== null && recovered !== null
+                ? cases - deaths - recovered
+                : null;
+
+            let previousEntry: TimelineEntry | null = null;
+            if (entries.length > 0) {
+                previousEntry = entries[entries.length - 1];
+            }
+
+            const casesIncrease = previousEntry !== null && previousEntry.cases !== null && previousEntry.cases !== 0 && cases !== null && previousEntry.cases !== cases
+                ? (cases - previousEntry.cases) / previousEntry.cases
+                : null;
+
+            const deathsIncrease = previousEntry !== null && previousEntry.deaths !== null && previousEntry.deaths !== 0 && deaths !== null && previousEntry.deaths !== deaths
+                ? (deaths - previousEntry.deaths) / previousEntry.deaths
+                : null;
+
+            const recoveredIncrease = previousEntry !== null && previousEntry.recovered !== null && previousEntry.recovered !== 0 && recovered !== null && previousEntry.recovered !== recovered
+                ? (recovered - previousEntry.recovered) / previousEntry.recovered
+                : null;
+
+            const activeIncrease = previousEntry !== null && previousEntry.active !== null && previousEntry.active !== 0 && active !== null && previousEntry.active !== active
+                ? (active - previousEntry.active) / previousEntry.active
+                : null;
+
+            entries.push(
+                new TimelineEntry(
+                    date,
+                    cases,
+                    casesIncrease,
+                    deaths,
+                    deathsIncrease,
+                    recovered,
+                    recoveredIncrease,
+                    active,
+                    activeIncrease
+                )
+            );
+        }
+
+        return new Timeline(entries);
+    };
+}
+
 enum Color {
     Default,
     Red,
@@ -176,14 +307,23 @@ class Table {
 }
 
 class NumberFormatter {
-    constructor(public includesPlusSign: boolean) { }
+    constructor(
+        public includesPlusSign: boolean,
+        public roundsFloats: boolean
+    ) { }
 
     format = (value: number): string => {
-        if (value > 0 && this.includesPlusSign) {
-            return `+${value}`;
+        let prefix = "";
+        if (this.includesPlusSign && value > 0) prefix = "+";
+        if (value < 0) prefix = "-";
+
+        let normalizedValue = value;
+        if (this.roundsFloats) {
+            normalizedValue = Math.round(normalizedValue);
         }
 
-        return `${value}`;
+        normalizedValue = Math.abs(normalizedValue);
+        return `${prefix}${normalizedValue}`;
     };
 }
 
@@ -209,7 +349,17 @@ async function fetchEntries(): Promise<Array<Entry>> {
         throw new APIError();
     }
     
-    return (await response.json() as [any]).map(e => Entry.parseJSON(e));
+    return (await response.json() as any[]).map(e => Entry.parseJSON(e));
+}
+
+async function fetchTimeline(territory: string, count: number): Promise<Timeline> {
+    const response = await fetch(`https://corona.lmao.ninja/v2/historical/${territory}?lastdays=${count}`);
+
+    if (!response.ok) {
+        throw new APIError();
+    }
+
+    return Timeline.parseJSON(await response.json());
 }
 
 function wait(ms: number) {
@@ -280,7 +430,7 @@ async function runLive() {
     while (true) {
         try {
             const entries = await fetchEntries();
-            const differenceFormatter = new NumberFormatter(true);
+            const differenceFormatter = new NumberFormatter(true, true);
 
             entries.forEach(async entry => {
                 const cachedEntry = cachedEntries[entry.country];
@@ -313,6 +463,43 @@ async function runLive() {
             console.error("Failed to fetch data. Retrying in 1 minute.");
             await wait(60 * 1000);
         }
+    }
+}
+
+async function runTimeline(territory: string, count: number) {
+    try {
+        const timeline = await fetchTimeline(territory, count);
+        const percentageFormatter = new NumberFormatter(true, true);
+
+        const table = new Table([
+            new Column("DATE", 12, Color.Default),
+            new Column("CASE ALL", 12, Color.Yellow),
+            new Column("CASE INC", 12, Color.Yellow),
+            new Column("DTH ALL", 12, Color.Red),
+            new Column("DTH INC", 12, Color.Red),
+            new Column("REC ALL", 12, Color.Green),
+            new Column("REC INC", 12, Color.Green),
+            new Column("ACT ALL", 12, Color.Blue),
+            new Column("ACT INC", 12, Color.Blue)
+        ]);
+
+        table.printHeaders();
+
+        for (const entry of timeline.entries) {
+            table.printRow([
+                entry.date,
+                entry.cases !== null ? entry.cases.toString() : "-",
+                entry.casesIncrease !== null ? `${percentageFormatter.format(entry.casesIncrease * 100)}%` : "-",
+                entry.deaths !== null ? entry.deaths.toString() : "-",
+                entry.deathsIncrease !== null ? `${percentageFormatter.format(entry.deathsIncrease * 100)}%` : "-",
+                entry.recovered !== null ? entry.recovered.toString() : "-",
+                entry.recoveredIncrease !== null ? `${percentageFormatter.format(entry.recoveredIncrease * 100)}%` : "-",
+                entry.active !== null ? entry.active.toString() : "-",
+                entry.activeIncrease !== null ? `${percentageFormatter.format(entry.activeIncrease * 100)}%` : "-"
+            ]);
+        }
+    } catch (error) {
+        console.log("Failed to fetch data.");
     }
 }
 
@@ -359,7 +546,26 @@ switch (command) {
         runLive();
         break;
 
+    case "timeline":
+        const territoryArg = args._[1];
+
+        if (territoryArg === undefined) {
+            console.error("The territory is not speicified.");
+            break;
+        }
+
+        const territory = territoryArg.toString();
+
+        let days = 30;
+        const daysArg = args.days;
+        if (daysArg !== undefined && typeof daysArg === "number") {
+            days = daysArg;
+        }
+
+        runTimeline(territory, days);
+        break;
+
     default:
-        console.error(`No such command '${command}'. Use one of the available commands: 'summary', 'list', 'live'.`);
+        console.error(`No such command '${command}'. Use one of the available commands: 'summary', 'list', 'live', 'timeline'.`);
         break;
 }

@@ -81,9 +81,9 @@ enum SortRule {
     Active
 }
 
-class Entry {
+class ListEntry {
     constructor(
-        public country: string,
+        public territory: string,
         public cases: number | null,
         public casesToday: number | null,
         public deaths: number | null,
@@ -92,7 +92,7 @@ class Entry {
         public active: number | null
     ) { }
 
-    static parseJSON = (json: any): Entry => new Entry(
+    static parseJSON = (json: any): ListEntry => new ListEntry(
         asString(json.country),
         asNumberOrNull(json.cases),
         asNumberOrNull(json.todayCases),
@@ -102,7 +102,7 @@ class Entry {
         asNumberOrNull(json.active)
     );
 
-    compare = (other: Entry, sortRule: SortRule): number => {
+    compare = (other: ListEntry, sortRule: SortRule): number => {
         switch (sortRule) {
             case SortRule.Cases: return (this.cases ?? 0) - (other.cases ?? 0);
             case SortRule.CasesToday: return (this.casesToday ?? 0) - (other.casesToday ?? 0);
@@ -114,12 +114,12 @@ class Entry {
     }
 }
 
-class Difference {
+class ListEntryDifference {
     cases: number;
     deaths: number;
     recovered: number;
 
-    constructor(oldEntry: Entry, newEntry: Entry) {
+    constructor(oldEntry: ListEntry, newEntry: ListEntry) {
         this.cases = oldEntry.cases && newEntry.cases ? newEntry.cases - oldEntry.cases : 0;
         this.deaths = oldEntry.deaths && newEntry.deaths ? newEntry.deaths - oldEntry.deaths : 0;
         this.recovered = oldEntry.recovered && newEntry.recovered ? newEntry.recovered - oldEntry.recovered : 0;
@@ -342,14 +342,14 @@ async function fetchSummary(): Promise<Summary> {
     return Summary.parseJSON((await response.json() as [any]));
 }
 
-async function fetchEntries(): Promise<Array<Entry>> {
+async function fetchListEntries(): Promise<Array<ListEntry>> {
     const response = await fetch("https://corona.lmao.ninja/countries");
 
     if (!response.ok) {
         throw new APIError();
     }
     
-    return (await response.json() as any[]).map(e => Entry.parseJSON(e));
+    return (await response.json() as any[]).map(e => ListEntry.parseJSON(e));
 }
 
 async function fetchTimeline(territory: string, count: number): Promise<Timeline> {
@@ -378,7 +378,7 @@ async function runSummary() {
 
 async function runList(sortRule: SortRule) {
     try {
-        const stats = (await fetchEntries()).sort((a, b) => -a.compare(b, sortRule));
+        const entries = (await fetchListEntries()).sort((a, b) => -a.compare(b, sortRule));
 
         const table = new Table([
             new Column("TERRITORY", 24, Color.Default),
@@ -392,9 +392,9 @@ async function runList(sortRule: SortRule) {
 
         table.printHeaders();
 
-        stats.forEach(e => {
+        entries.forEach(e => {
             table.printRow([
-                e.country,
+                e.territory,
                 e.cases !== null ? e.cases.toString() : "-",
                 e.casesToday !== null ? e.casesToday.toString() : "-",
                 e.deaths !== null ? e.deaths.toString() : "-",
@@ -409,7 +409,7 @@ async function runList(sortRule: SortRule) {
 }
 
 async function runLive() {
-    const cachedEntries: { [country: string]: Entry } = {};
+    const cachedEntries: { [territory: string]: ListEntry } = {};
 
     const table = new Table([
         new Column("TIME", 8, Color.Default),
@@ -429,19 +429,19 @@ async function runLive() {
 
     while (true) {
         try {
-            const entries = await fetchEntries();
+            const entries = await fetchListEntries();
             const differenceFormatter = new NumberFormatter(true, true);
 
             entries.forEach(async entry => {
-                const cachedEntry = cachedEntries[entry.country];
+                const cachedEntry = cachedEntries[entry.territory];
 
                 if (cachedEntry) {
-                    const difference = new Difference(cachedEntry, entry);
+                    const difference = new ListEntryDifference(cachedEntry, entry);
 
                     if (!difference.isEmpty) {
                         table.printRow([
                             time(),
-                            entry.country,
+                            entry.territory,
                             difference.cases != 0 ? differenceFormatter.format(difference.cases) : "",
                             entry.cases !== null ? entry.cases.toString() : "-",
                             entry.casesToday !== null ? entry.casesToday.toString() : "-",
@@ -455,7 +455,7 @@ async function runLive() {
                     }
                 }
 
-                cachedEntries[entry.country] = entry;
+                cachedEntries[entry.territory] = entry;
             });
 
             await wait(1 * 60 * 1000 + Math.random() * 9 * 60 * 1000);

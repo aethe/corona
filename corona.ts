@@ -498,7 +498,7 @@ async function runTimeline(territory: string, count: number, subject: TimelineSu
 
         if (subject === null) {
             const table = new Table([
-                new Column("DATE", 12, Color.Default),
+                new Column("DATE", 10, Color.Default),
                 new Column("CASE ALL", 12, Color.Yellow),
                 new Column("CASE INC", 12, Color.Yellow),
                 new Column("DTH ALL", 12, Color.Red),
@@ -550,7 +550,7 @@ async function runTimeline(territory: string, count: number, subject: TimelineSu
             }
 
             const table = new Table([
-                new Column("DATE", 12, Color.Default),
+                new Column("DATE", 10, Color.Default),
                 new Column(subjectName, 96, subjectColor)
             ]);
 

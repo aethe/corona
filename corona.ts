@@ -130,6 +130,13 @@ class ListEntryDifference {
     }
 }
 
+enum TimelineSubject {
+    Cases,
+    Deaths,
+    Recovered,
+    Active
+}
+
 class TimelineEntry {
     constructor(
         public date: string,
@@ -142,6 +149,24 @@ class TimelineEntry {
         public active: number | null,
         public activeIncrease: number | null
     ) { }
+
+    getTotalBySubject = (subject: TimelineSubject): number | null => {
+        switch (subject) {
+            case TimelineSubject.Cases: return this.cases;
+            case TimelineSubject.Deaths: return this.deaths;
+            case TimelineSubject.Recovered: return this.recovered;
+            case TimelineSubject.Active: return this.active;
+        }
+    };
+
+    getIncreaseBySubject = (subject: TimelineSubject): number | null => {
+        switch (subject) {
+            case TimelineSubject.Cases: return this.casesIncrease;
+            case TimelineSubject.Deaths: return this.deathsIncrease;
+            case TimelineSubject.Recovered: return this.recoveredIncrease;
+            case TimelineSubject.Active: return this.activeIncrease;
+        }
+    };
 }
 
 class Timeline {
@@ -466,37 +491,96 @@ async function runLive() {
     }
 }
 
-async function runTimeline(territory: string, count: number) {
+async function runTimeline(territory: string, count: number, subject: TimelineSubject | null) {
     try {
         const timeline = await fetchTimeline(territory, count);
         const percentageFormatter = new NumberFormatter(true, true);
 
-        const table = new Table([
-            new Column("DATE", 12, Color.Default),
-            new Column("CASE ALL", 12, Color.Yellow),
-            new Column("CASE INC", 12, Color.Yellow),
-            new Column("DTH ALL", 12, Color.Red),
-            new Column("DTH INC", 12, Color.Red),
-            new Column("REC ALL", 12, Color.Green),
-            new Column("REC INC", 12, Color.Green),
-            new Column("ACT ALL", 12, Color.Blue),
-            new Column("ACT INC", 12, Color.Blue)
-        ]);
-
-        table.printHeaders();
-
-        for (const entry of timeline.entries) {
-            table.printRow([
-                entry.date,
-                entry.cases !== null ? entry.cases.toString() : "-",
-                entry.casesIncrease !== null ? `${percentageFormatter.format(entry.casesIncrease * 100)}%` : "-",
-                entry.deaths !== null ? entry.deaths.toString() : "-",
-                entry.deathsIncrease !== null ? `${percentageFormatter.format(entry.deathsIncrease * 100)}%` : "-",
-                entry.recovered !== null ? entry.recovered.toString() : "-",
-                entry.recoveredIncrease !== null ? `${percentageFormatter.format(entry.recoveredIncrease * 100)}%` : "-",
-                entry.active !== null ? entry.active.toString() : "-",
-                entry.activeIncrease !== null ? `${percentageFormatter.format(entry.activeIncrease * 100)}%` : "-"
+        if (subject === null) {
+            const table = new Table([
+                new Column("DATE", 12, Color.Default),
+                new Column("CASE ALL", 12, Color.Yellow),
+                new Column("CASE INC", 12, Color.Yellow),
+                new Column("DTH ALL", 12, Color.Red),
+                new Column("DTH INC", 12, Color.Red),
+                new Column("REC ALL", 12, Color.Green),
+                new Column("REC INC", 12, Color.Green),
+                new Column("ACT ALL", 12, Color.Blue),
+                new Column("ACT INC", 12, Color.Blue)
             ]);
+
+            table.printHeaders();
+
+            for (const entry of timeline.entries) {
+                table.printRow([
+                    entry.date,
+                    entry.cases !== null ? entry.cases.toString() : "-",
+                    entry.casesIncrease !== null ? `${percentageFormatter.format(entry.casesIncrease * 100)}%` : "-",
+                    entry.deaths !== null ? entry.deaths.toString() : "-",
+                    entry.deathsIncrease !== null ? `${percentageFormatter.format(entry.deathsIncrease * 100)}%` : "-",
+                    entry.recovered !== null ? entry.recovered.toString() : "-",
+                    entry.recoveredIncrease !== null ? `${percentageFormatter.format(entry.recoveredIncrease * 100)}%` : "-",
+                    entry.active !== null ? entry.active.toString() : "-",
+                    entry.activeIncrease !== null ? `${percentageFormatter.format(entry.activeIncrease * 100)}%` : "-"
+                ]);
+            }
+        } else {
+            let subjectName = "";
+            let subjectColor = Color.Default;
+            switch (subject) {
+                case TimelineSubject.Cases:
+                    subjectName = "CASES";
+                    subjectColor = Color.Yellow;
+                    break;
+
+                case TimelineSubject.Deaths:
+                    subjectName = "DEATHS";
+                    subjectColor = Color.Red;
+                    break;
+
+                case TimelineSubject.Recovered:
+                    subjectName = "RECOVERED";
+                    subjectColor = Color.Green;
+                    break;
+
+                case TimelineSubject.Active:
+                    subjectName = "ACTIVE";
+                    subjectColor = Color.Blue;
+                    break
+            }
+
+            const table = new Table([
+                new Column("DATE", 12, Color.Default),
+                new Column(subjectName, 96, subjectColor)
+            ]);
+
+            table.printHeaders();
+
+            const maximumTotal = timeline.entries.reduce((result, next) => Math.max(result, next.getTotalBySubject(subject) ?? 0), 0);
+
+            for (const entry of timeline.entries) {
+                const total = entry.getTotalBySubject(subject);
+                const increase = entry.getIncreaseBySubject(subject);
+
+                let graph = total !== null && total > 0 && maximumTotal > 0
+                    ? "█".repeat(Math.round(total / maximumTotal * 80))
+                    : "";
+
+                if (graph !== "") {
+                    graph += " ";
+                }
+
+                graph += total !== null ? total.toString() : "-";
+
+                if (increase !== null) {
+                    graph += ` (${percentageFormatter.format(increase * 100)}%)`;
+                }
+
+                table.printRow([
+                    entry.date,
+                    graph
+                ]);
+            }
         }
     } catch (error) {
         console.log("Failed to fetch data.");
@@ -562,7 +646,26 @@ switch (command) {
             days = daysArg;
         }
 
-        runTimeline(territory, days);
+        let subject: TimelineSubject | null = null;
+        switch (args["subject"]) {
+            case "cases":
+                subject = TimelineSubject.Cases;
+                break;
+
+            case "deaths":
+                subject = TimelineSubject.Deaths;
+                break;
+
+            case "recovered":
+                subject = TimelineSubject.Recovered;
+                break;
+
+            case "active":
+                subject = TimelineSubject.Active;
+                break;
+        }
+
+        runTimeline(territory, days, subject);
         break;
 
     default:

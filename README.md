@@ -47,3 +47,5 @@ deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts
 ```
 
 To specify the length of the timeline to render, use the `--days` argument. The default is `30`.
+
+To draw a graph for a specific subject, use the `--subject` argument with one of the following values: `cases`, `deaths`, `recovered`, `active`.

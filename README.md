@@ -4,7 +4,7 @@ CLI for tracking the ongoing pandemic of COVID-19.
 
 ## Source
 
-Data is fetched from https://corona.lmao.ninja/all, https://corona.lmao.ninja/countries, and https://corona.lmao.ninja/v2/historical. I don't have any control over the data, nor am I responsible for any inaccuracies of the provided information. Refer to the [API repository](https://github.com/NovelCOVID/API) for more details.
+Data is fetched from https://corona.lmao.ninja/v2/all, https://corona.lmao.ninja/v2/countries, and https://corona.lmao.ninja/v2/historical. I don't have any control over the data, nor am I responsible for any inaccuracies of the provided information. Refer to the [API repository](https://github.com/NovelCOVID/API) for more details.
 
 ## Installation
 

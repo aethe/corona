@@ -358,7 +358,7 @@ function time(): string {
 }
 
 async function fetchSummary(): Promise<Summary> {
-    const response = await fetch("https://corona.lmao.ninja/all");
+    const response = await fetch("https://corona.lmao.ninja/v2/all");
 
     if (!response.ok) {
         throw new APIError();
@@ -368,7 +368,7 @@ async function fetchSummary(): Promise<Summary> {
 }
 
 async function fetchListEntries(): Promise<Array<ListEntry>> {
-    const response = await fetch("https://corona.lmao.ninja/countries");
+    const response = await fetch("https://corona.lmao.ninja/v2/countries");
 
     if (!response.ok) {
         throw new APIError();

@@ -17,7 +17,7 @@ There is no installation required, but you need to have [Deno](https://deno.land
 Renders the current data from all territories combined.
 
 ```
-deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts summary
+deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts summary
 ```
 
 ### List
@@ -25,7 +25,7 @@ deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts
 Renders a table with the current data per territory.
 
 ```
-deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts list
+deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts list
 ```
 
 To sort the output, use the `--sort` argument with one of the following values: `cases`, `cases-today`, `deaths`, `deaths-today`, `recovered`, `active`. The default is `cases`.
@@ -35,7 +35,7 @@ To sort the output, use the `--sort` argument with one of the following values: 
 Renders real-time updates.
 
 ```
-deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts live
+deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts live
 ```
 
 ### Timeline
@@ -43,7 +43,7 @@ deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts
 Renders a timeline for a specific territory.
 
 ```
-deno --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts timeline china
+deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts timeline china
 ```
 
 To specify the length of the timeline to render, use the `--days` argument. The default is `30`.

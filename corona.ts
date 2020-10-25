@@ -78,6 +78,7 @@ enum SortRule {
     Deaths,
     DeathsToday,
     Recovered,
+    RecoveredToday,
     Active
 }
 
@@ -89,6 +90,7 @@ class ListEntry {
         public deaths: number | null,
         public deathsToday: number | null,
         public recovered: number | null,
+        public recoveredToday: number | null,
         public active: number | null
     ) { }
 
@@ -99,6 +101,7 @@ class ListEntry {
         asNumberOrNull(json.deaths),
         asNumberOrNull(json.todayDeaths),
         asNumberOrNull(json.recovered),
+        asNumberOrNull(json.todayRecovered),
         asNumberOrNull(json.active)
     );
 
@@ -109,6 +112,7 @@ class ListEntry {
             case SortRule.Deaths: return (this.deaths ?? 0) - (other.deaths ?? 0);
             case SortRule.DeathsToday: return (this.deathsToday ?? 0) - (other.deathsToday ?? 0);
             case SortRule.Recovered: return (this.recovered ?? 0) - (other.recovered ?? 0);
+            case SortRule.RecoveredToday: return (this.recoveredToday ?? 0) - (other.recoveredToday ?? 0);
             case SortRule.Active: return (this.active ?? 0) - (other.active ?? 0);
         }
     }
@@ -290,9 +294,9 @@ class Table {
     constructor(public columns: Column[]) { }
 
     printHeaders = () => console.log(
-        this.columns.map(e => 
+        this.columns.map(e =>
             this.colorize(
-                e.header.padEnd(e.width, " "), 
+                e.header.padEnd(e.width, " "),
                 e.color
             )
         ).join("")
@@ -307,7 +311,7 @@ class Table {
             data.map((e, i) =>
                 this.colorize(
                     this.clip(
-                        e, 
+                        e,
                         this.columns[i].width - 1
                     ).padEnd(this.columns[i].width),
                     this.columns[i].color
@@ -373,7 +377,7 @@ async function fetchListEntries(): Promise<Array<ListEntry>> {
     if (!response.ok) {
         throw new APIError();
     }
-    
+
     return (await response.json() as any[]).map(e => ListEntry.parseJSON(e));
 }
 
@@ -412,6 +416,7 @@ async function runList(sortRule: SortRule) {
             new Column("DTH ALL", 12, Color.Red),
             new Column("DTH DAY", 12, Color.Red),
             new Column("REC ALL", 12, Color.Green),
+            new Column("REC DAY", 12, Color.Green),
             new Column("ACTIVE", 12, Color.Blue)
         ]);
 
@@ -425,6 +430,7 @@ async function runList(sortRule: SortRule) {
                 e.deaths !== null ? e.deaths.toString() : "-",
                 e.deathsToday !== null ? e.deathsToday.toString() : "-",
                 e.recovered !== null ? e.recovered.toString() : "-",
+                e.recoveredToday !== null ? e.recoveredToday.toString() : "-",
                 e.active !== null ? e.active.toString() : "-"
             ]);
         });
@@ -447,6 +453,7 @@ async function runLive() {
         new Column("DTH DAY", 12, Color.Red),
         new Column("REC NEW", 12, Color.Green),
         new Column("REC ALL", 12, Color.Green),
+        new Column("REC DAY", 12, Color.Green),
         new Column("ACTIVE", 12, Color.Blue)
     ]);
 
@@ -475,6 +482,7 @@ async function runLive() {
                             entry.deathsToday !== null ? entry.deathsToday.toString() : "-",
                             difference.recovered != 0 ? differenceFormatter.format(difference.recovered) : "",
                             entry.recovered !== null ? entry.recovered.toString() : "-",
+                            entry.recoveredToday !== null ? entry.recoveredToday.toString() : "-",
                             entry.active !== null ? entry.active.toString() : "-"
                         ]);
                     }
@@ -613,7 +621,7 @@ switch (command) {
             case "deaths-today":
                 sortRule = SortRule.DeathsToday;
                 break;
-                
+
             case "recovered":
                 sortRule = SortRule.Recovered;
                 break;

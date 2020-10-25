@@ -20,6 +20,8 @@ Renders the current data from all territories combined.
 deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts summary
 ```
 
+![Summary](img/summary.png)
+
 ### List
 
 Renders a table with the current data per territory.
@@ -30,6 +32,8 @@ deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/coron
 
 To sort the output, use the `--sort` argument with one of the following values: `cases`, `cases-today`, `deaths`, `deaths-today`, `recovered`, `active`. The default is `cases`.
 
+![List](img/list.png)
+
 ### Live
 
 Renders real-time updates.
@@ -37,6 +41,8 @@ Renders real-time updates.
 ```
 deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts live
 ```
+
+![Live](img/live.png)
 
 ### Timeline
 
@@ -46,6 +52,10 @@ Renders a timeline for a specific territory.
 deno run --allow-net https://raw.githubusercontent.com/aethe/corona/master/corona.ts timeline china
 ```
 
+![Timeline](img/timeline.png)
+
 To specify the length of the timeline to render, use the `--days` argument. The default is `30`.
 
 To draw a graph for a specific subject, use the `--subject` argument with one of the following values: `cases`, `deaths`, `recovered`, `active`.
+
+![Timeline Graph](img/timeline-graph.png)

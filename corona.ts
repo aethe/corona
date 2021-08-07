@@ -301,7 +301,7 @@ class Table {
                     e.color
                 )
             ).join("")
-        )
+        );
     };
 
     printRow = (data: string[]) => {

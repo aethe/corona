@@ -293,14 +293,16 @@ class Column {
 class Table {
     constructor(public columns: Column[]) { }
 
-    printHeaders = () => console.log(
-        this.columns.map(e =>
-            this.colorize(
-                e.header.padEnd(e.width, " "),
-                e.color
-            )
-        ).join("")
-    );
+    printHeaders = () => {
+        console.log(
+            this.columns.map(e =>
+                this.colorize(
+                    e.header.padEnd(e.width, " "),
+                    e.color
+                )
+            ).join("")
+        )
+    };
 
     printRow = (data: string[]) => {
         if (data.length != this.columns.length) {
